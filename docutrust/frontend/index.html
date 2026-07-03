@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DocuTrust — Enterprise Advanced RAG Platform with Automated Self-Correction. AI-powered document analysis with strict citations.">
+    <title>DocuTrust — Enterprise RAG Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Profile selector and history list styles */
+        .profile-select {
+            transition: border-color 0.2s;
+        }
+        .profile-select:hover {
+            border-color: var(--border-hover) !important;
+        }
+        
+        /* Collapsible Document outline styling */
+        .doc-item-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: all 0.2s var(--ease-out);
+            animation: slideInLeft 0.4s var(--ease-out) backwards;
+        }
+        .doc-item-container:hover {
+            border-color: var(--border-hover);
+        }
+        .doc-item-container .doc-item {
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0;
+            background: transparent;
+            animation: none;
+        }
+        .doc-outline-toggle {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px 12px;
+            background: rgba(148, 163, 184, 0.02);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s, color 0.2s;
+            font-weight: 500;
+        }
+        .doc-outline-toggle:hover {
+            background: rgba(148, 163, 184, 0.06);
+            color: var(--text-primary);
+        }
+        .doc-outline-toggle svg {
+            transition: transform 0.2s;
+        }
+        .doc-outline-toggle.expanded svg {
+            transform: rotate(180deg);
+        }
+        .doc-outline-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(0, 0, 0, 0.12);
+            font-size: 0.72rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .doc-outline-list.expanded {
+            max-height: 180px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .outline-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.02);
+        }
+        .outline-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .outline-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+        .outline-title-wrapper span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .outline-item-page {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .outline-item.level-1 { padding-left: 12px; }
+        .outline-item.level-2 { padding-left: 22px; }
+        .outline-item.level-3 { padding-left: 32px; }
+
+        /* History section styling */
+        .history-section {
+            margin: 0 16px 12px 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            background: var(--bg-elevated);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .history-header {
+            padding: 8px 12px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(148, 163, 184, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        .history-header:hover {
+            background: rgba(148, 163, 184, 0.05);
+        }
+        .history-header svg {
+            transition: transform 0.2s;
+        }
+        .history-header.collapsed svg {
+            transform: rotate(-90deg);
+        }
+        .history-list {
+            max-height: 130px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            transition: max-height 0.25s;
+        }
+        .history-list.collapsed {
+            max-height: 0;
+            border-bottom: none;
+        }
+        .history-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transition: background 0.2s;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-item:hover {
+            background: var(--bg-hover);
+        }
+        .history-query {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-date {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 9, 15, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 440px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.25s ease;
+        }
+        .modal-overlay.open .modal-card {
+            transform: translateY(0);
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .modal-body {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .form-group label {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .form-group input, .form-group select {
+            padding: 8px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--accent-blue);
+        }
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-subtle);
+            background: rgba(148, 163, 184, 0.02);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── HEADER ── -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-grad)"/>
+                    <path d="M8 10h16M8 16h12M8 22h14" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+                    <circle cx="24" cy="22" r="4" fill="#10B981" stroke="#0A0F1E" stroke-width="1.5"/>
+                    <path d="M22.5 22l1 1 2-2" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32">
+                            <stop stop-color="#3B82F6"/>
+                            <stop offset="1" stop-color="#8B5CF6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>DocuTrust</h1>
+                <span class="logo-subtitle">Enterprise RAG Platform</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <!-- Offline/Mock Local Mode Warning -->
+            <div id="api-key-warning" class="status-badge hidden" style="border-color: rgba(245, 158, 11, 0.3); color: var(--accent-amber);" title="Running in local offline mode.">
+                <span class="status-dot" style="background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber);"></span>
+                <span>Local Mode</span>
+            </div>
+            <!-- Client Profile Selector -->
+            <div class="profile-selector-container" style="display: flex; align-items: center; gap: 6px;">
+                <select id="profile-select" class="profile-select" style="background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); padding: 5px 10px; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 500; outline: none; cursor: pointer;">
+                    <!-- Populated dynamically -->
+                </select>
+                <button class="btn-icon" id="btn-add-profile" title="Create settings profile" style="width: 28px; height: 28px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="status-badge" id="connection-badge">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+            <button class="btn-icon" id="btn-clear-all" title="Reset session">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main id="app-main">
+
+        <!-- ═══ LEFT PANE: Upload & Query ═══ -->
+        <section id="pane-left" class="pane">
+            <div class="pane-header">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Documents
+                </h2>
+            </div>
+
+            <!-- Drop Zone -->
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-inner">
+                    <div class="drop-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <p class="drop-text">Drop PDF files here</p>
+                    <p class="drop-subtext">or click to browse • Max 50MB</p>
+                    <input type="file" id="file-input" accept=".pdf" multiple hidden>
+                </div>
+                <!-- Upload progress ring -->
+                <div id="upload-progress" class="upload-progress hidden">
+                    <svg class="progress-ring" width="80" height="80">
+                        <circle class="progress-ring-bg" cx="40" cy="40" r="34" fill="none" stroke-width="4"/>
+                        <circle class="progress-ring-fill" cx="40" cy="40" r="34" fill="none" stroke-width="4" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+                    </svg>
+                    <span class="progress-percent">0%</span>
+                </div>
+            </div>
+
+            <!-- Uploaded Documents List -->
+            <div id="documents-list" class="documents-list">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Session History -->
+            <div class="history-section">
+                <div class="history-header" id="history-toggle">
+                    <span>Recent Sessions</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div id="history-list" class="history-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Query Input -->
+            <div class="query-section">
+                <div class="query-input-wrapper">
+                    <textarea id="query-input" placeholder="Ask about your documents..." rows="3" maxlength="2000"></textarea>
+                    <button id="btn-query" class="btn-primary" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        <span>Analyze</span>
+                    </button>
+                </div>
+                <div class="query-hint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Tip: Ask specific questions for best results with citations</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ CENTER PANE: Agent Evaluation Log ═══ -->
+        <section id="pane-center" class="pane">
+            <div class="pane-header">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Agent Pipeline
+                </h2>
+                <div class="pipeline-badge" id="pipeline-status">
+                    <span>Idle</span>
+                </div>
+            </div>
+
+            <div id="agent-log" class="agent-log">
+                <!-- Empty state -->
+                <div id="agent-empty" class="agent-empty">
+                    <div class="empty-illustration">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.3">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <p>Upload a document and ask a question<br>to see the CRAG pipeline in action</p>
+                </div>
+
+                <!-- Pipeline steps will be injected here -->
+                <div id="pipeline-steps" class="pipeline-steps"></div>
+            </div>
+
+            <!-- Pipeline flow diagram -->
+            <div id="pipeline-flow" class="pipeline-flow hidden">
+                <div class="flow-node" data-node="retrieve">
+                    <div class="flow-dot"></div>
+                    <span>Retrieve</span>
+                </div>
+                <div class="flow-connector"></div>
+                <div class="flow-node" data-node="grade_documents">
+                    <div class="flow-dot"></div>
+                    <span>Grade</span>
+                </div>
+                <div class="flow-connector flow-branch"></div>
+                <div class="flow-node" data-node="generate">
+                    <div class="flow-dot"></div>
+                    <span>Generate</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ RIGHT PANE: Answer & Citations ═══ -->
+        <section id="pane-right" class="pane">
+            <div class="pane-header">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    Validated Answer
+                </h2>
+            </div>
+
+            <div id="answer-container" class="answer-container">
+                <!-- Empty state -->
+                <div id="answer-empty" class="answer-empty">
+                    <div class="empty-shield">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.25">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <p>Validated, cited answers will appear here</p>
+                    <span class="empty-detail">Every claim is backed by source citations</span>
+                </div>
+
+                <!-- Answer Content -->
+                <div id="answer-content" class="answer-content hidden">
+                    <!-- Confidence Badge -->
+                    <div id="confidence-section" class="confidence-section">
+                        <div class="confidence-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 120 120">
+                                <circle class="gauge-bg" cx="60" cy="60" r="50" fill="none" stroke-width="8"/>
+                                <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="50" fill="none" stroke-width="8" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                            </svg>
+                            <div class="gauge-value">
+                                <span id="confidence-value">0</span>
+                                <small>%</small>
+                            </div>
+                        </div>
+                        <div class="confidence-label">
+                            <span class="confidence-title">Confidence Score</span>
+                            <span class="confidence-desc" id="confidence-desc">Calculating...</span>
+                        </div>
+                    </div>
+
+                    <!-- Web search indicator -->
+                    <div id="web-search-badge" class="web-search-badge hidden">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <span>Web search was used to supplement results</span>
+                    </div>
+
+                    <!-- Answer text -->
+                    <div id="answer-text" class="answer-text"></div>
+
+                    <!-- Citations -->
+                    <div id="citations-section" class="citations-section">
+                        <h3>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            Sources & Citations
+                        </h3>
+                        <div id="citations-list" class="citations-list"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ── NEW PROFILE MODAL ── -->
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create Client Settings Profile</h3>
+                <button class="btn-icon" id="btn-close-modal" style="width: 24px; height: 24px; border: none; background: transparent;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="input-profile-id">Profile ID (lowercase alphanumeric)</label>
+                    <input type="text" id="input-profile-id" placeholder="e.g., finance-dept" pattern="[a-z0-9\-]+" required>
+                </div>
+                <div class="form-group">
+                    <label for="input-profile-name">Profile Name</label>
+                    <input type="text" id="input-profile-name" placeholder="e.g., Finance & Audit" required>
+                </div>
+                <div class="form-group">
+                    <label for="select-profile-provider">LLM Provider</label>
+                    <select id="select-profile-provider">
+                        <option value="google">Google Gemini (Cloud)</option>
+                        <option value="openai">OpenAI GPT (Cloud)</option>
+                        <option value="mock">Local Extractive Heuristic (No Key)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="input-profile-model">Model Name</label>
+                    <input type="text" id="input-profile-model" value="gemini-1.5-flash">
+                </div>
+                <div class="form-group">
+                    <label for="input-profile-threshold">Relevance Threshold (0.0 to 1.0)</label>
+                    <input type="number" id="input-profile-threshold" min="0.0" max="1.0" step="0.05" value="0.5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-cancel-profile">Cancel</button>
+                <button class="btn-primary" id="btn-save-profile">Create Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TOAST NOTIFICATIONS ── -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

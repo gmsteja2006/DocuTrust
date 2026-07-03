@@ -1,0 +1,13 @@
+cd "C:\Users\Teja\OneDrive\Desktop\EduExpose prj"
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r docutrust\backend\requirements.txt
+Copy-Item docutrust\backend\.env.example docutrust\backend\.env
+python docutrust\backend\main.py
+
+
+cd "C:\Users\Teja\OneDrive\Desktop\EduExpose prj"
+.\start.ps1
+
+
+mongod --dbpath C:\data\db
