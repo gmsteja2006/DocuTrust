@@ -1,27 +1,21 @@
-# DocuTrust - Enterprise Advanced RAG Platform (Vercel Optimized)
+# DocuTrust - Enterprise Advanced RAG Platform (Vercel Ultra-Optimized)
 # Core Framework
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-python-multipart==0.0.19
-pydantic
-pydantic-settings
+fastapi==0.115.0
+uvicorn==0.33.0
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic-settings==2.1.0
 
 # MongoDB
-motor==3.7.0
-pymongo==4.10.1
+motor==3.3.2
+pymongo==4.6.0
 
-# Direct API clients (minimal dependencies)
-google-generativeai==0.8.4
-openai==1.3.0
+# Direct API clients (minimal)
+google-generativeai==0.3.0
 
 # PDF Processing
-PyMuPDF==1.25.3
-
-# Web Search
-duckduckgo-search==7.2.1
+PyMuPDF==1.23.8
 
 # Utilities
-python-dotenv==1.0.1
-sse-starlette==2.2.1
-aiohttp
-httpx
+python-dotenv==1.0.0
+sse-starlette==2.1.0
