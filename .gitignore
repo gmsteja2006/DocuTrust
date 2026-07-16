@@ -1,0 +1,11 @@
+.venv
+.venv.venv
+docutrust/backend/.env
+docutrust/backend/.venv
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+node_modules/
+*.log
