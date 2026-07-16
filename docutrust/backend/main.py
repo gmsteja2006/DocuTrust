@@ -114,10 +114,13 @@ else:
 # ── Health Check ──
 @app.get("/health")
 async def health_check():
+    db = get_db()
+    db_type = "mock" if type(db).__name__ == "MockDatabase" else "mongodb"
     return {
         "status": "healthy",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "database": db_type,
     }
 
 

@@ -1008,6 +1008,26 @@
         }
     }
 
+    async function checkDatabaseStatus() {
+        try {
+            const res = await fetch(`${API_BASE}/health`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.database === 'mock') {
+                    const badge = els.connectionBadge;
+                    const textEl = badge.querySelector('.status-text');
+                    textEl.textContent = 'Ready (Mock DB - Ephemeral)';
+                    badge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    badge.querySelector('.status-dot').style.background = '#EF4444';
+                    
+                    showToast('Running in Ephemeral Mock Database mode. Uploaded data will not persist. Please set MONGODB_URI in Vercel.', 'warning', 8000);
+                }
+            }
+        } catch (e) {
+            console.log('Failed to check database status:', e.message);
+        }
+    }
+
     // ══════════════════════════════════════
     // Initialize
     // ══════════════════════════════════════
@@ -1061,6 +1081,7 @@
         loadProfiles();
         loadExistingDocuments();
         loadHistory();
+        checkDatabaseStatus();
 
         console.log('🛡️ DocuTrust initialized');
     }
