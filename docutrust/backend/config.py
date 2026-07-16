@@ -1,10 +1,9 @@
 """
 DocuTrust Configuration — Environment-driven settings for the platform.
-Uses pydantic-settings for type-safe configuration with .env support.
+Uses pydantic for type-safe configuration with .env support.
 """
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings, validator
 from typing import Optional
 
 
@@ -34,7 +33,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     CORS_ORIGINS: list[str] = ["*"]
 
-    @field_validator("DEBUG", mode="before")
+    @validator("DEBUG", pre=True)
     def validate_debug(cls, value):
         return _parse_bool(value)
 
@@ -71,11 +70,10 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = None
     WEB_SEARCH_MAX_RESULTS: int = 3
 
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "case_sensitive": True,
-    }
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
 
 
 settings = Settings()
