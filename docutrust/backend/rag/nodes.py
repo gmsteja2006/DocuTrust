@@ -148,8 +148,19 @@ async def retrieve_node(state: GraphState) -> dict:
     if document_ids:
         filter_query["document_id"] = {"$in": document_ids}
 
-    cursor = col.find(filter_query, {"_id": 0})
-    all_chunks = await cursor.to_list(length=500)
+    try:
+        cursor = col.find(filter_query, {"_id": 0})
+        all_chunks = await cursor.to_list(length=500)
+    except Exception as e:
+        logger.error(f"MongoDB retrieval failed: {e}")
+        return {
+            "documents": [],
+            "trace_log": [_trace_entry(
+                "Retrieve", "completed",
+                f"Database query failed: {str(e)}",
+                {"chunk_count": 0, "error": str(e)}
+            )],
+        }
 
     if not all_chunks:
         return {

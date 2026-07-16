@@ -11,6 +11,39 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 
+def _is_api_key_valid() -> bool:
+    key = settings.GOOGLE_API_KEY
+    if not key:
+        return False
+    if "your-google-api-key" in key.lower() or key.strip() == "":
+        return False
+    return True
+
+
+def _get_mock_embedding(text: str) -> list[float]:
+    import hashlib
+    import math
+    dim = settings.EMBEDDING_DIMENSION or 384
+    hasher = hashlib.sha256(text.encode("utf-8"))
+    digest = hasher.digest()
+    
+    # Deterministic generation from seed
+    seed = int.from_bytes(digest[:4], byteorder="big")
+    vector = []
+    current = seed
+    for _ in range(dim):
+        current = (1103515245 * current + 12345) & 0x7fffffff
+        val = (current / 2147483647.0) * 2.0 - 1.0
+        vector.append(val)
+        
+    magnitude = math.sqrt(sum(x * x for x in vector))
+    if magnitude > 0:
+        vector = [x / magnitude for x in vector]
+    else:
+        vector = [0.051] * dim
+    return vector
+
+
 def get_embeddings_client():
     """Initialize Google Generative AI client."""
     genai.configure(api_key=settings.GOOGLE_API_KEY)
@@ -20,14 +53,12 @@ def get_embeddings_client():
 def embed_texts(texts: list[str], batch_size: int = 100) -> list[list[float]]:
     """
     Generate embeddings for a batch of texts using Google Generative AI API.
-    
-    Args:
-        texts: List of text strings to embed
-        batch_size: Processing batch size
-    
-    Returns:
-        List of embedding vectors as float lists
+    Falls back to deterministic local mock embeddings if API key is not valid.
     """
+    if not _is_api_key_valid():
+        logger.warning("⚠️ GOOGLE_API_KEY not configured. Generating deterministic mock embeddings locally.")
+        return [_get_mock_embedding(t) for t in texts]
+
     client = get_embeddings_client()
     logger.info(f"🔢 Embedding {len(texts)} texts via Google Generative AI API...")
     
@@ -53,7 +84,10 @@ def embed_texts(texts: list[str], batch_size: int = 100) -> list[list[float]]:
 
 
 def embed_query(query: str) -> list[float]:
-    """Embed a single query string using Google Generative AI API."""
+    """Embed a single query string using Google Generative AI API or local mock fallback."""
+    if not _is_api_key_valid():
+        return _get_mock_embedding(query)
+
     client = get_embeddings_client()
     try:
         response = client.embed_content(

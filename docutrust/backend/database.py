@@ -21,7 +21,7 @@ async def connect_db() -> AsyncIOMotorDatabase:
     global _client, _db
 
     logger.info(f"Connecting to MongoDB at {settings.MONGODB_URI}...")
-    _client = AsyncIOMotorClient(settings.MONGODB_URI)
+    _client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2500)
     _db = _client[settings.MONGODB_DB_NAME]
 
     # Verify connection
@@ -101,9 +101,12 @@ async def _ensure_indexes():
 
 
 def get_db() -> AsyncIOMotorDatabase:
-    """Get the current database instance."""
+    """Get the current database instance, initializing it if necessary."""
+    global _client, _db
     if _db is None:
-        raise RuntimeError("Database not initialized. Call connect_db() first.")
+        logger.info(f"Lazily initializing MongoDB client at {settings.MONGODB_URI}...")
+        _client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2500)
+        _db = _client[settings.MONGODB_DB_NAME]
     return _db
 
 

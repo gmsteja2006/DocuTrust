@@ -25,6 +25,8 @@ torch
 
 # PDF Processing
 PyMuPDF==1.25.3
+pypdf==3.17.1
+
 
 # Web Search Fallback
 duckduckgo-search==7.2.1

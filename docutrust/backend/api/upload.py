@@ -82,7 +82,13 @@ async def upload_document(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"❌ Upload failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Document processing failed: {str(e)}")
+        err_msg = str(e)
+        if "ServerSelectionTimeoutError" in type(e).__name__ or "timeout" in err_msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="MongoDB connection timed out. If you are running on Vercel, please make sure you set the MONGODB_URI environment variable to a remote database (like MongoDB Atlas). Localhost is not accessible from Vercel."
+            )
+        raise HTTPException(status_code=500, detail=f"Document processing failed: {err_msg}")
 
 
 @router.get("/documents")
