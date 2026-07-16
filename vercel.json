@@ -1,6 +1,4 @@
 {
-  "buildCommand": "uv pip install -r requirements.txt",
-  "outputDirectory": ".",
   "env": {
     "PYTHONUNBUFFERED": "1"
   }
