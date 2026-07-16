@@ -1,51 +1,48 @@
 """
 DocuTrust Embedder — Generates vector embeddings for document chunks.
-Uses Google Generative AI API for embeddings (reduces deployment size).
+Uses Google Generative AI API directly for embeddings.
 """
 
 import logging
 import asyncio
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+import google.generativeai as genai
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Singleton embeddings instance ──
-_embeddings: GoogleGenerativeAIEmbeddings | None = None
+
+def get_embeddings_client():
+    """Initialize Google Generative AI client."""
+    genai.configure(api_key=settings.GOOGLE_API_KEY)
+    return genai
 
 
-def get_embedding_model() -> GoogleGenerativeAIEmbeddings:
-    """Get or initialize Google Generative AI embeddings."""
-    global _embeddings
-    if _embeddings is None:
-        logger.info(f"Initializing Google Generative AI embeddings...")
-        _embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        logger.info(f"✅ Embeddings initialized (API-based)")
-    return _embeddings
-
-
-def embed_texts(texts: list[str], batch_size: int = 32) -> list[list[float]]:
+def embed_texts(texts: list[str], batch_size: int = 100) -> list[list[float]]:
     """
     Generate embeddings for a batch of texts using Google Generative AI API.
     
     Args:
         texts: List of text strings to embed
-        batch_size: Processing batch size (Google API handles batching)
+        batch_size: Processing batch size
     
     Returns:
         List of embedding vectors as float lists
     """
-    embeddings = get_embedding_model()
-
+    client = get_embeddings_client()
     logger.info(f"🔢 Embedding {len(texts)} texts via Google Generative AI API...")
     
-    # Process in batches
     all_embeddings = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
         try:
-            batch_embeddings = embeddings.embed_documents(batch)
-            all_embeddings.extend(batch_embeddings)
+            # Use Google's embedding API
+            response = client.embed_content(
+                model="models/embedding-001",
+                content=batch,
+                task_type="RETRIEVAL_DOCUMENT"
+            )
+            embeddings = response['embedding'] if isinstance(response, dict) else [response.embedding]
+            all_embeddings.extend(embeddings if isinstance(embeddings, list) and len(embeddings) > 1 else [embeddings])
             logger.info(f"  ✓ Processed batch {i//batch_size + 1}")
         except Exception as e:
             logger.error(f"❌ Embedding error for batch: {e}")
@@ -57,9 +54,17 @@ def embed_texts(texts: list[str], batch_size: int = 32) -> list[list[float]]:
 
 def embed_query(query: str) -> list[float]:
     """Embed a single query string using Google Generative AI API."""
-    embeddings = get_embedding_model()
-    embedding = embeddings.embed_query(query)
-    return embedding
+    client = get_embeddings_client()
+    try:
+        response = client.embed_content(
+            model="models/embedding-001",
+            content=query,
+            task_type="RETRIEVAL_QUERY"
+        )
+        return response['embedding'] if isinstance(response, dict) else response.embedding
+    except Exception as e:
+        logger.error(f"❌ Query embedding error: {e}")
+        raise
 
 
 def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:

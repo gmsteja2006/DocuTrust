@@ -1,4 +1,4 @@
-# DocuTrust - Enterprise Advanced RAG Platform
+# DocuTrust - Enterprise Advanced RAG Platform (Vercel Optimized)
 # Core Framework
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
@@ -10,18 +10,14 @@ pydantic-settings
 motor==3.7.0
 pymongo==4.10.1
 
-# AI / LLM (API-based to reduce bundle size)
-langchain==0.3.14
-langchain-google-genai==2.0.8
-langchain-openai==0.3.0
-langchain-community==0.3.14
+# Direct API clients (minimal dependencies)
 google-generativeai==0.8.4
-openai
+openai==1.59.0
 
 # PDF Processing
 PyMuPDF==1.25.3
 
-# Web Search Fallback
+# Web Search
 duckduckgo-search==7.2.1
 
 # Utilities

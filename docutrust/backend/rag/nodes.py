@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timezone
 from rag.state import GraphState
 from rag.grader import grade_documents, rerank_documents
+from rag.llm_utils import call_llm
 from ingestion.embedder import embed_query, cosine_similarity
 import re
 from config import settings
@@ -274,21 +275,6 @@ async def rewrite_query_node(state: GraphState) -> dict:
         rewritten = " ".join(keywords) + " detailed information" if keywords else original_query + " details"
     else:
         try:
-            if provider == "google":
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                llm = ChatGoogleGenerativeAI(
-                    model=model,
-                    temperature=0.0,
-                    google_api_key=settings.GOOGLE_API_KEY,
-                )
-            else:
-                from langchain_openai import ChatOpenAI
-                llm = ChatOpenAI(
-                    model=model,
-                    temperature=0.0,
-                    api_key=settings.OPENAI_API_KEY,
-                )
-
             prompt = (
                 "You are a query rewriter for a document search system. "
                 "Rewrite the following query to be more specific and search-friendly. "
@@ -296,8 +282,8 @@ async def rewrite_query_node(state: GraphState) -> dict:
                 f"Original query: {original_query}"
             )
 
-            response = await llm.ainvoke(prompt)
-            rewritten = response.content.strip()
+            rewritten = await call_llm(provider, model, prompt, temperature=0.0)
+            rewritten = rewritten.strip()
 
         except Exception as e:
             logger.warning(f"Query rewrite failed: {e}. Using original query.")
@@ -440,25 +426,8 @@ ANSWER (with citations):"""
         answer, citations = _local_extractive_summary(query, all_sources)
     else:
         try:
-            if provider == "google":
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                llm = ChatGoogleGenerativeAI(
-                    model=model,
-                    temperature=settings.LLM_TEMPERATURE,
-                    google_api_key=settings.GOOGLE_API_KEY,
-                    max_output_tokens=settings.LLM_MAX_TOKENS,
-                )
-            else:
-                from langchain_openai import ChatOpenAI
-                llm = ChatOpenAI(
-                    model=model,
-                    temperature=settings.LLM_TEMPERATURE,
-                    api_key=settings.OPENAI_API_KEY,
-                    max_tokens=settings.LLM_MAX_TOKENS,
-                )
-
-            response = await llm.ainvoke(prompt)
-            answer = response.content.strip()
+            answer = await call_llm(provider, model, prompt, temperature=settings.LLM_TEMPERATURE)
+            answer = answer.strip()
 
         except Exception as e:
             logger.error(f"LLM generation failed: {e}")
