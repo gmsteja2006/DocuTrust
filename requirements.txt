@@ -1,0 +1,34 @@
+# DocuTrust - Enterprise Advanced RAG Platform
+# Core Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.19
+pydantic
+pydantic-settings
+
+# MongoDB
+motor==3.7.0
+pymongo==4.10.1
+
+# AI / LLM
+langgraph==0.2.60
+langchain==0.3.14
+langchain-google-genai==2.0.8
+langchain-openai==0.3.0
+langchain-community==0.3.14
+google-generativeai==0.8.4
+
+# Embeddings & Reranking
+sentence-transformers==3.3.1
+torch
+
+# PDF Processing
+PyMuPDF==1.25.3
+
+# Web Search Fallback
+duckduckgo-search==7.2.1
+
+# Utilities
+python-dotenv==1.0.1
+numpy
+sse-starlette==2.2.1

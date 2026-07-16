@@ -1,0 +1,11 @@
+.git
+.env
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.DS_Store
+node_modules
+*.log
+docutrust/backend/.env
+docutrust/backend/debug_imports.py
