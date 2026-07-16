@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pip install --break-system-packages -r requirements.txt",
+  "buildCommand": "pip install --only-binary :all: -r requirements.txt",
   "outputDirectory": ".",
   "env": {
     "PYTHONUNBUFFERED": "1"
