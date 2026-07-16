@@ -1,10 +1,10 @@
 # DocuTrust - Enterprise Advanced RAG Platform (Vercel Ultra-Optimized)
 # Core Framework
-fastapi==0.115.0
-uvicorn==0.33.0
+fastapi==0.104.1
+uvicorn==0.24.0
 python-multipart==0.0.6
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic==2.4.2
+pydantic-settings==2.0.3
 
 # MongoDB
 motor==3.3.2
