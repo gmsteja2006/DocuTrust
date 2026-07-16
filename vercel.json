@@ -1,5 +1,34 @@
 {
+  "version": 2,
   "env": {
     "PYTHONUNBUFFERED": "1"
-  }
+  },
+  "builds": [
+    {
+      "src": "docutrust/frontend/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/docutrust/frontend/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/(favicon\\.ico|robots\\.txt|.*\\.css|.*\\.js|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.woff2?|.*\\.ttf)",
+      "dest": "/docutrust/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ]
 }

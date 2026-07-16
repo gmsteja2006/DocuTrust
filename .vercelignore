@@ -1,6 +1,7 @@
 .git
 .env
 .venv
+.venv.venv
 __pycache__
 *.pyc
 .pytest_cache
@@ -9,3 +10,9 @@ node_modules
 *.log
 docutrust/backend/.env
 docutrust/backend/debug_imports.py
+docutrust/backend/.venv
+docutrust/backend/__pycache__
+docutrust/backend/api/__pycache__
+docutrust/backend/ingestion/__pycache__
+docutrust/backend/rag/__pycache__
+start.ps1

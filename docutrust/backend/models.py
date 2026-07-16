@@ -89,7 +89,7 @@ class SessionLog(BaseModel):
     session_id: str
     query: str
     trace_steps: list[TraceStep] = []
-    final_response: Optional[QueryResponse] = None
+    final_response: Optional[dict] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

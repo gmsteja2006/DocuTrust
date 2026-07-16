@@ -81,13 +81,24 @@ app.include_router(query_router)
 app.include_router(client_router)
 
 # ── Serve Frontend ──
+import os
+is_vercel = os.environ.get("VERCEL", "").strip() != ""
 frontend_dir = Path(__file__).parent.parent / "frontend"
-if frontend_dir.exists():
+
+if not is_vercel and frontend_dir.exists():
+    # Local development: serve frontend via FastAPI
     app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
 
     @app.get("/")
     async def serve_frontend():
         """Serve the main frontend HTML."""
+        return FileResponse(str(frontend_dir / "index.html"))
+elif is_vercel and frontend_dir.exists():
+    # Vercel: static files are served by @vercel/static builder,
+    # but the root "/" catchall still hits the API function
+    @app.get("/")
+    async def serve_frontend_vercel():
+        """Serve the main frontend HTML on Vercel."""
         return FileResponse(str(frontend_dir / "index.html"))
 else:
     @app.get("/")

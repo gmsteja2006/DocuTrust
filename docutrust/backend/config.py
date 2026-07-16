@@ -3,8 +3,16 @@ DocuTrust Configuration — Environment-driven settings for the platform.
 Uses pydantic for type-safe configuration with .env support.
 """
 
-from pydantic import BaseSettings, validator
 from typing import Optional
+
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+    from pydantic import field_validator
+except ImportError:  # pragma: no cover - fallback for pydantic v1
+    from pydantic import BaseSettings, validator
+
+    SettingsConfigDict = None
+    field_validator = validator
 
 
 def _parse_bool(value):
@@ -25,6 +33,13 @@ def _parse_bool(value):
 class Settings(BaseSettings):
     """Application settings loaded from environment variables or .env file."""
 
+    if SettingsConfigDict is not None:
+        model_config = SettingsConfigDict(
+            env_file=".env",
+            env_file_encoding="utf-8",
+            case_sensitive=True,
+        )
+
     # ── Application ──
     APP_NAME: str = "DocuTrust"
     APP_VERSION: str = "1.0.0"
@@ -33,7 +48,8 @@ class Settings(BaseSettings):
     PORT: int = 8000
     CORS_ORIGINS: list[str] = ["*"]
 
-    @validator("DEBUG", pre=True)
+    @field_validator("DEBUG", mode="before")
+    @classmethod
     def validate_debug(cls, value):
         return _parse_bool(value)
 
@@ -70,10 +86,11 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = None
     WEB_SEARCH_MAX_RESULTS: int = 3
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    if SettingsConfigDict is None:
+        class Config:
+            env_file = ".env"
+            env_file_encoding = "utf-8"
+            case_sensitive = True
 
 
 settings = Settings()

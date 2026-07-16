@@ -1,14 +1,33 @@
-# DocuTrust - Enterprise Advanced RAG Platform (Vercel Minimal)
-fastapi==0.100.0
-uvicorn==0.23.0
-python-multipart==0.0.6
-pydantic==1.10.12
+# DocuTrust - Enterprise Advanced RAG Platform (Vercel Deployment)
+# NOTE: Vercel serverless has a 250MB function size limit.
+# Heavy ML packages (torch, sentence-transformers) are excluded.
+# The grader falls back to a lightweight cosine-similarity approach on Vercel.
 
-motor==3.3.2
-pymongo==4.6.0
+# Core Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
 
-google-generativeai==0.3.0
-pypdf==3.17.1
+# MongoDB
+motor>=3.3.0
+pymongo>=4.6.0
 
-python-dotenv==1.0.0
-sse-starlette==2.1.0
+# LLM (lightweight, API-based — no torch needed)
+google-generativeai>=0.3.0
+
+# PDF Processing (pure Python, lightweight)
+pypdf>=3.17.0
+
+# LangGraph (lightweight graph engine)
+langgraph>=0.2.0
+langchain-core>=0.1.0
+
+# Web Search Fallback
+duckduckgo-search>=5.0
+
+# Utilities
+python-dotenv>=1.0.0
+sse-starlette>=2.1.0
+numpy
