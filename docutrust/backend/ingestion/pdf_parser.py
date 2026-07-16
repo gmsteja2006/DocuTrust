@@ -1,9 +1,9 @@
 """
 DocuTrust PDF Parser — Extracts and chunks text from multi-page PDFs.
-Uses PyMuPDF (fitz) for robust extraction with sliding-window chunking.
+Uses pypdf (pure Python) for robust extraction with sliding-window chunking.
 """
 
-import fitz  # PyMuPDF
+import pypdf
 import uuid
 import logging
 import re
@@ -19,43 +19,37 @@ def extract_pages(doc) -> list[dict]:
     """
     pages = []
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        text = page.get_text("text")
+    for page_num in range(len(doc.pages)):
+        page = doc.pages[page_num]
+        text = page.extract_text()
 
         # Detect headings (lines that are short, uppercase, or bold-ish)
-        headings = _detect_headings(page)
+        headings = _detect_headings(text)
 
         pages.append({
             "page_number": page_num + 1,
-            "text": text.strip(),
+            "text": text.strip() if text else "",
             "headings": headings,
         })
 
     return pages
 
 
-def _detect_headings(page) -> list[str]:
-    """Heuristic heading detection from font size analysis."""
-    blocks = page.get_text("dict", flags=fitz.TEXTFLAGS_TEXT)["blocks"]
+def _detect_headings(text: str) -> list[str]:
+    """Heuristic heading detection from text patterns."""
     headings = []
-
-    for block in blocks:
-        if "lines" not in block:
-            continue
-        for line in block["lines"]:
-            for span in line["spans"]:
-                # Headings tend to have larger font sizes
-                if span["size"] >= 14 and len(span["text"].strip()) > 2:
-                    headings.append(span["text"].strip())
-                # Or are bold uppercase short strings
-                elif (
-                    "bold" in span["font"].lower()
-                    and len(span["text"].strip()) < 80
-                    and len(span["text"].strip()) > 2
-                ):
-                    headings.append(span["text"].strip())
-
+    if not text:
+        return headings
+    
+    lines = text.split('\n')
+    for line in lines:
+        stripped = line.strip()
+        # Headings tend to be short, uppercase, or all caps
+        if len(stripped) > 2 and len(stripped) < 100:
+            # Check if it looks like a heading (uppercase, ends with colon, etc.)
+            if stripped.isupper() or stripped.endswith(':') or stripped.startswith('##'):
+                headings.append(stripped)
+    
     return headings
 
 
@@ -126,57 +120,46 @@ def chunk_document(
 
 def process_pdf(pdf_stream: BinaryIO, filename: str) -> tuple[str, list[dict], int, list[dict]]:
     """
-    Full pipeline: extract structure, text, and outline, and chunk a PDF.
+    Full pipeline: extract structure, text, and outline, and chunk a PDF using pypdf.
     
     Returns:
         (document_id, chunks[], page_count, structural_index[])
     """
     document_id = str(uuid.uuid4())[:12]
 
-    doc = fitz.open(stream=pdf_stream.read(), filetype="pdf")
-    page_count = len(doc)
+    try:
+        doc = pypdf.PdfReader(pdf_stream)
+        page_count = len(doc.pages)
+    except Exception as e:
+        logger.error(f"Failed to read PDF {filename}: {e}")
+        raise
 
     # 1. Extract structural outline (bookmarks/TOC)
     structural_index = []
     try:
-        toc = doc.get_toc(simple=True)
-        if toc:
-            logger.info(f"Native TOC found with {len(toc)} entries in {filename}.")
-            for item in toc:
-                pg_num = max(1, min(item[2], page_count))
-                structural_index.append({
-                    "title": item[1].strip(),
-                    "page_number": pg_num,
-                    "level": item[0]
-                })
+        # pypdf doesn't have native TOC, so we build from page content
+        logger.info(f"Building outline from page headings in {filename}...")
     except Exception as e:
-        logger.warning(f"Error parsing native TOC: {e}")
+        logger.warning(f"Error parsing outline: {e}")
 
-    # Fallback to page heading heuristics if native TOC is empty
-    if not structural_index:
-        logger.info(f"No native TOC found in {filename}. Building heuristic outlines...")
-        for page_num in range(page_count):
-            page = doc[page_num]
-            headings = _detect_headings(page)
-            seen_headings = set()
-            for heading in headings:
-                if heading not in seen_headings:
-                    structural_index.append({
-                        "title": heading,
-                        "page_number": page_num + 1,
-                        "level": 1
-                    })
-                    seen_headings.add(heading)
-
-    # Limit outline to 100 items to avoid cluttering DB
-    structural_index = structural_index[:100]
+    # Build heuristic outlines from page headings
+    seen_headings = set()
+    for page_num in range(page_count):
+        headings = _detect_headings(doc.pages[page_num].extract_text() or "")
+        for heading in headings:
+            if heading not in seen_headings and len(structural_index) < 100:
+                structural_index.append({
+                    "title": heading,
+                    "page_number": page_num + 1,
+                    "level": 1
+                })
+                seen_headings.add(heading)
 
     # 2. Extract page contents
     pages = []
     for page_num in range(page_count):
-        page = doc[page_num]
-        text = page.get_text("text")
-
+        text = doc.pages[page_num].extract_text() or ""
+        
         # Map headings that belong to this page
         page_headings = [item["title"] for item in structural_index if item["page_number"] == page_num + 1]
 
@@ -185,8 +168,6 @@ def process_pdf(pdf_stream: BinaryIO, filename: str) -> tuple[str, list[dict], i
             "text": text.strip(),
             "headings": page_headings,
         })
-
-    doc.close()
 
     # 3. Chunk documents
     chunks = chunk_document(pages, document_id)
